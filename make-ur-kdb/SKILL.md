@@ -64,17 +64,17 @@ Build the public information architecture intentionally: home, collection/catego
 
 Create an editorial visual system from the user’s palette: named color tokens, display/body/mono typography roles, spacing scale, images, component radii, focus state, motion duration, and z-index layers. Use composition variety rather than repetitive equal cards. Public pages should feel spacious and image-led; operational screens should favor calm information density and scannable data.
 
-Every customer surface needs loading, empty, unavailable, validation-error, success and offline/degraded states. Use visible focus, 44px touch targets, mobile single-column collapse, semantic labels, accurate alt text, `min-height: 100dvh` for view-height sections, and no horizontal overflow.
+Every customer surface needs loading, empty, unavailable, validation-error, success and offline/degraded states. Conditional checkout fields must use controlled state: changing a wilaya, delivery type, locale, delivery rule or other dynamic choice must preserve the valid name, phone, selected lines and compatible values already entered. Clear only now-invalid dependent choices, such as a baladiya after its wilaya changes, with a concise explanation. Use visible focus, 44px touch targets, mobile single-column collapse, semantic labels, accurate alt text, `min-height: 100dvh` for view-height sections, and no horizontal overflow.
 
 ## 5. Checkout, delivery and trusted totals
 
-First model the order flow as a server-side state machine. On checkout, re-read variants and delivery rules, validate stock and visibility, calculate line totals, discounts, tax if configured, delivery fee and grand total on the server, then write an immutable order snapshot inside a transaction. Use an idempotency key so retries cannot create duplicate orders.
+First model the order flow as a server-side state machine. On checkout, re-read variants and delivery rules, validate stock and visibility, calculate line totals, discounts, tax if configured, delivery fee and grand total on the server, then write an immutable order snapshot inside a transaction. Use an idempotency key so retries cannot create duplicate orders. After success, clear only the completed cart/draft and render a dedicated confirmation screen or durable route carrying the safe public order code and verified delivery label; do not hide success feedback behind an empty-cart branch.
 
 For Algeria-focused builds, use COD by default unless the user selects another method: full name, phone, all 58 wilayas, Stop Desk or domicile, and a dependent baladiya selector only for domicile. Validate the wilaya/baladiya relationship on the server. Never request unneeded email, free-form address, payment data or user data.
 
 ## 6. Private owner control room
 
-Build an unadvertised direct route with real authorization. The owner console must cover Overview, Orders, Delivery, Catalogue, Collections, Content, Hero/Media, Insights, Settings, Activity and Backup/Export. Use a custom brand-specific design, never an imitation of Shopify or a public-template dashboard.
+Build an unadvertised direct route with real authorization. The owner console must cover Overview, Orders, Delivery, Catalogue, Collections, Content, Hero/Media, Insights, Settings, Activity and Backup/Export. Bind order-status selects and other dynamic admin controls directly after the owner surface renders, or cover the actual delegated event path with an end-to-end test; API unit tests alone do not prove that a rendered control causes its protected mutation. Use a custom brand-specific design, never an imitation of Shopify or a public-template dashboard.
 
 | Console area | Required operations |
 | --- | --- |
@@ -98,4 +98,4 @@ Test pure totals/state transitions, input validation, data migration, resource o
 
 ## 8. Completion checklist
 
-Before delivery, verify all six inputs are visibly applied; no public admin discovery exists; no secrets or TODO placeholders remain; every domain entity has ownership and lifecycle rules; every API mutation is validated and authorized; desktop and mobile flows are tested; first-party analytics is documented; and deployment/backup/rollback instructions match the selected platforms.
+Before delivery, verify all six inputs are visibly applied; no public admin discovery exists; no secrets or TODO placeholders remain; every domain entity has ownership and lifecycle rules; every API mutation is validated and authorized; conditional forms preserve valid input across re-renders; successful checkout reaches a visible confirmation state; rendered owner controls—not only their endpoints—complete protected mutations; current static client assets are loaded after deploy; desktop and mobile flows are tested; first-party analytics is documented; and deployment/backup/rollback instructions match the selected platforms.

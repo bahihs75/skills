@@ -59,7 +59,7 @@ When generating mobile visual references, establish a design bible first: platfo
 
 ## 7. States, motion and accessibility
 
-Every interactive unit requires default, hover, focus-visible, active, disabled, loading, empty, success and error considerations. Use skeletons that match final layout rather than generic spinners. Place form labels above inputs, helper text near the field, and specific error text below it. Support `prefers-reduced-motion`; animate only `transform` and `opacity`; use intentional non-linear motion below 300ms for routine interactions; and never animate layout dimensions or bind continuous scroll work directly to scroll events.
+Every interactive unit requires default, hover, focus-visible, active, disabled, loading, empty, success and error considerations. Use skeletons that match final layout rather than generic spinners. Place form labels above inputs, helper text near the field, and specific error text below it. For conditional forms, retain valid typed values in controlled state when changing a select, radio choice, delivery method, locale or dynamic section causes a re-render; clear only values that have become invalid and explain why. A successful submission must render a dedicated confirmation state or route that survives clearing a cart/draft. Support `prefers-reduced-motion`; animate only `transform` and `opacity`; use intentional non-linear motion below 300ms for routine interactions; and never animate layout dimensions or bind continuous scroll work directly to scroll events.
 
 ## 8. Analytics and experimentation
 
@@ -71,7 +71,7 @@ Measure service quality with latency, error rate, queue depth, conversion by fun
 
 Use a test pyramid: deterministic unit tests for pure rules and state transitions; integration tests for persistence/API/authorization; minimal end-to-end critical paths. Test unhappy paths, retries/idempotency, ownership, concurrent mutations, migrations, mobile layout and accessibility. Run type checks, lint/format checks, build validation and dependency/security checks appropriate to the stack.
 
-Release with reversible migrations, backups before destructive operations, documented environment variables, health/readiness checks, structured logs, request IDs, alert thresholds and rollback instructions. Use feature flags only for genuine staged rollout needs, and remove stale flags after adoption.
+Release with reversible migrations, backups before destructive operations, documented environment variables, health/readiness checks, structured logs, request IDs, alert thresholds and rollback instructions. Version or content-hash static client assets so a deployed/reloaded browser receives the current event handlers; test the rendered control itself, not only the underlying API. Use feature flags only for genuine staged rollout needs, and remove stale flags after adoption.
 
 ## 10. Complete-output standard
 

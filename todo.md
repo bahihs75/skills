@@ -24,3 +24,8 @@
 - [x] Expand each of the 12 repository-reference skills with domain model, system design, data structures, API/security, UI/UX, responsive behavior, testing, delivery, and operational standards.
 - [x] Add a professional README.md to every skill folder with purpose, triggers, deliverables, reference source, and usage guidance.
 - [x] Validate all expanded packages, check README coverage, and commit only the `skills` repository.
+
+## Aster Loom Practical Validation
+
+- [x] Add the conditional-form preservation, dedicated-confirmation-state, rendered-control binding, and static-asset refresh lessons from the Aster Loom test to `make-ur-kdb` and the shared standards.
+- [x] Revalidate the amended make-ur-kdb package and document the practical coverage outcome.
