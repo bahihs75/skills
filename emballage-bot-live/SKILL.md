@@ -1,24 +1,43 @@
 ---
 name: emballage-bot-live
-description: Build a secure Telegram-driven product-page automation workflow that collects product media and data, renders a branded product page, publishes it through an approved deployment provider, and routes orders through trusted server endpoints. Use when operators need rapid product-page creation from chat.
+description: Build a secure Telegram-driven product-page automation system that gathers structured product data and approved media, validates a finite intake flow, publishes branded pages through an approved deployment pipeline, and routes orders through trusted server endpoints. Use when operators need rapid product-page creation from chat.
 ---
 
-# Emballage Bot Live Reference Skill
+# Emballage Bot Live — Telegram Product Publishing Operations
 
-Create a Telegram operations bot that turns a structured operator conversation into a product landing page. Treat the chat as an intake interface, not a trusted publishing or payment system.
+This skill turns an authorized Telegram conversation into a reliable product-publishing workflow. The bot is an intake interface; publication, storage, authentication, order creation and notification remain trusted backend responsibilities. Read [`../STANDARDS.md`](../STANDARDS.md) first.
 
-## Intake state machine
+## 1. Operator roles and intake state machine
 
-Collect image, product name, price, brand, description, SKU, availability and publication decision in explicit steps. Validate type, length, allowed characters, currency and image dimensions. Persist state in a durable store rather than an in-memory object when restarts matter.
+Authorize operators by immutable user ID and explicit role. Model an intake draft with `draft`, `awaiting_media`, `awaiting_name`, `awaiting_price`, `awaiting_description`, `review`, `publishing`, `published`, `failed`, `cancelled` states. Store draft state durably with expiration; do not rely on process memory when the runtime can restart.
 
-## Safe publishing flow
+| Input | Validation | Storage rule |
+| --- | --- | --- |
+| Media | MIME, byte size, dimensions, checksum, operator ownership | Upload once to approved object storage; store object key and metadata. |
+| Name | trimmed, bounded, unique/slug-safe check | Generate a canonical slug server-side. |
+| Price | integer minor units or exact decimal + selected currency | Never parse display punctuation ambiguously. |
+| Description | bounded, sanitized plain/approved rich text | Escape before template render. |
+| SKU/availability | unique constraints, enum/state | Server confirms before publish. |
+| Publication choice | authorized operator confirmation | Use idempotency key and audit event. |
 
-Generate pages from an escaped template, use safe image URLs or stored media, write only to the approved build/publish location, and return the resulting link to the authorized operator. Keep Telegram tokens and administrator IDs on the server; never emit them into generated HTML or browser JavaScript.
+Every prompt shows current draft summary, validation error, back/cancel affordance and expiry behavior. Avoid emoji-only controls and opaque unexplained states.
 
-## Order handling
+## 2. Product, page and media model
 
-Send order forms to a server endpoint or managed data backend. Validate customer data server-side, rate-limit submissions, apply abuse protection, and notify operators through a server-side bot call. Do not make browsers call Telegram’s bot API with secrets.
+Create `operators`, `product_drafts`, `products`, `variants`, `media_assets`, `publish_jobs`, `pages`, `orders`, `notifications` and `activity_events`. A product page derives from structured data and a versioned template; never concatenate unescaped user input into an HTML string. Preserve published page version, product snapshot and media association to support rollback.
 
-## Verification
+## 3. Publishing architecture
 
-Test interrupted chats, invalid media, quote escaping, duplicate products, publish failure, unauthorized operator attempts, order validation, and clean-up of expired intake sessions.
+The bot writes a validated publish job. A trusted worker/server uses provider credentials to build/render the page, upload assets, deploy through the approved provider API, verify the resulting URL/status and record success/failure. Apply explicit timeouts, retry only safe idempotent steps, and expose a human-readable failure reason to the operator without leaking deployment tokens.
+
+If static generation is used, publish to a separate staging location before promotion. If a database-backed storefront is used, make publication a transactional visibility change after media and data validation. Never let a browser or Telegram client receive deployment credentials.
+
+## 4. Customer order boundary
+
+Published pages send order requests to a server endpoint with typed schema, bot-safe rate limit and validation. The server resolves current product/variant/price/availability, creates an idempotent order/request, stores minimal customer information and triggers notification from the server. Do not let client code call the Telegram Bot API or create an order from hidden DOM price fields.
+
+## 5. Design, analytics and tests
+
+Use a compact product-page system: factual hero/product image, price/availability, description, specification, action, delivery/policy context and accessible contact/order form. Make responsive image loading, 44px targets, focus, errors, unavailable state and confirmation explicit.
+
+Track draft started, draft validation failed, review reached, publish succeeded/failed, page viewed and order requested without analytics secrets/PII. Test interrupted chats, expired drafts, invalid media, duplicate SKU, escaped content, unauthorized operator, deployment failure/retry, order validation, notification retry, page rollback and mobile rendering.

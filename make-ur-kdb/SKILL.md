@@ -1,54 +1,101 @@
 ---
 name: make-ur-kdb
-description: Build an original premium KDB-style commerce website and bespoke owner-admin system. Use when a user wants a complete storefront with catalog, delivery, checkout, operations, and an internal admin panel while choosing only brand name, palette, font, currency, hosting platform, and data platform.
+description: Create an original, premium, platform-configurable commerce website and private owner-admin system. Use when a user wants a complete brand storefront, product operations, delivery, checkout, owner controls, and deployment while supplying only brand name, palette, font preference, currency, hosting platform, and data platform.
 ---
 
-# Make ur KDB
+# Make ur KDB — Complete Commerce and Owner-Control Playbook
 
-Create a premium, original commerce system with a public storefront and a separate, protected owner console. Preserve the functional rigor of KDB: editorial product discovery, server-authoritative commerce, COD-ready delivery, content governance, catalogue operations, and no public discovery of the admin route.
+This skill creates an original KDB-quality commerce system. It combines an editorial storefront, trusted transaction flow, responsive customer experience, private operational console, provider-aware architecture, and rigorous launch controls. It never copies a reference design, codebase, brand identity, image rights, customer data, reviews, ratings, orders, or operational metrics.
 
-## Collect exactly six inputs
+Read [`../STANDARDS.md`](../STANDARDS.md) before implementation. Its requirements for system boundaries, data structures, API design, security, UI/UX, mobile behavior, analytics, testing, and complete output are mandatory.
 
-Ask for the following values in one compact form. Do not add discovery questions after receiving valid answers.
+## 1. Collect exactly six inputs
 
-| Input | Required handling |
+Use one concise form. Once valid values are supplied, begin implementation without asking for a logo, slogan, testimonials, personal credentials, or subjective brand workshop.
+
+| Required input | Acceptance rule | How it changes the system |
+| --- | --- | --- |
+| Brand name | Any non-empty name | Metadata, public copy, admin labels, email/send templates, accessibility labels, documentation. |
+| Color palette | HEX list, named palette, image palette, or concise description | Semantic color tokens; one controlled accent; contrast verification. |
+| Preferred font | Valid font name or “none” | Use supplied font when licensable; otherwise use `DM Serif Display` for editorial display and `Manrope` for interface/body. |
+| Currency | Symbol or ISO code | Money formatting, receipts, cart, orders, reports, exports. |
+| Hosting platform | Explicit provider | Runtime, CI/CD, environment variables, domain, scaling and observability design. |
+| Data platform | Explicit provider | Schema/migrations, identity boundary, authorization, storage, backup and recovery strategy. |
+
+If one value is missing, ask only for that value. Treat hosting and data choices as architecture constraints, not cosmetic preferences.
+
+## 2. Architecture selection
+
+Write an architecture decision record covering the selected provider pair. Use the smallest production-safe stack. A public marketing site may be static, but orders, user information, owner changes, inventory, totals, secrets, callbacks, and provider keys must never rely on untrusted client logic.
+
+| Provider pair | Recommended architecture | Mandatory safeguards |
+| --- | --- | --- |
+| Render + Neon | Typed full-stack application with server APIs, PostgreSQL migrations, object storage for media. | Connection pooling, migration runbook, server-only secrets, backups and health endpoint. |
+| Cloudflare + Firebase | Pages/Workers for public/API edge; Firebase Auth/Firestore/Storage for identity/data/media. | Firestore rules, privileged worker/function layer, signed uploads and deploy-time environment checks. |
+| Cloudflare + D1/R2 | Worker API, D1 relational data, R2 media and queued jobs when required. | Parameterized queries, migration files, R2 scoped signing, idempotent jobs. |
+| Vercel + Supabase | Next.js server routes/actions, Supabase Postgres/Auth/Storage. | RLS per tenant/resource, service-role use only on server, migration review. |
+| Firebase Hosting + Firebase | Static/public client plus Auth, Firestore, Storage and Cloud Functions. | Rules as authorization authority, callable/HTTP functions for trusted totals and state changes. |
+
+Create modules for `domain`, `schemas`, `services`, `repositories`, `adapters`, `api`, `ui`, `config`, and `tests`. Keep framework glue at the edge. Use dependency injection or small provider adapters for data, storage, notification and payment integrations.
+
+## 3. Canonical data model
+
+Implement the entities that the selected project needs, with stable IDs, UTC timestamps, actor fields, ownership and explicit state transitions.
+
+| Entity | Core fields | Invariants and indexes |
+| --- | --- | --- |
+| User | id, identityProviderId, email/phone where supplied, role, status, createdAt | Unique provider ID; role changes audited. |
+| Store | id, brandName, currency, settings, ownerId, status | One owner membership minimum; index ownerId. |
+| Product | id, storeId, slug, title, description, visibility, categoryId, mediaIds | Unique `(storeId, slug)`; public query index by visibility/category. |
+| Variant | id, productId, sku, attributes, priceMinor, compareAtMinor, stockState | Unique SKU; exact integer or decimal money; no browser price authority. |
+| Collection/Category | id, storeId, title, slug, sortOrder, visibility | Stable slug and sortable visibility query. |
+| MediaAsset | id, storeId, objectKey, URL, alt, width, height, role, approvalState | Object storage only; signed path ownership; no binary database column. |
+| Cart | id, userId or anonymousToken, currency, lines, expiresAt | Validate current product/variant availability at checkout. |
+| Order | id, storeId, publicCode, customer snapshot, lines snapshot, totals, delivery snapshot, payment status, order status | Immutable line/price snapshot; idempotency unique key; status/date index. |
+| DeliveryRule | id, region scope, method, feeMinor, availability, conditions | Server-selected by region/method; effective date optional. |
+| ContentBlock | id, storeId, surface, locale, payload, visibility, revision | Sanitized structured content, not executable markup. |
+| ActivityEvent | id, storeId, actorId, action, targetType, targetId, before, after, requestId, createdAt | Append-only and indexed by store/date. |
+
+Use maps/dictionaries for keyed UI state and set membership for selected filters or deduplication. Paginate catalogue, media, order and activity lists. Do not load unbounded data into a dashboard or use quadratic list scans for cart/product lookups.
+
+## 4. Public storefront and customer experience
+
+Build the public information architecture intentionally: home, collection/category discovery, search/filter results, product detail, bag, checkout, confirmation, account/orders where the identity model supports it, contact/policies, and helpful not-found/error pages. Use semantic navigation and a skip link. Do not include a public link or marketing reference to the owner console.
+
+Create an editorial visual system from the user’s palette: named color tokens, display/body/mono typography roles, spacing scale, images, component radii, focus state, motion duration, and z-index layers. Use composition variety rather than repetitive equal cards. Public pages should feel spacious and image-led; operational screens should favor calm information density and scannable data.
+
+Every customer surface needs loading, empty, unavailable, validation-error, success and offline/degraded states. Use visible focus, 44px touch targets, mobile single-column collapse, semantic labels, accurate alt text, `min-height: 100dvh` for view-height sections, and no horizontal overflow.
+
+## 5. Checkout, delivery and trusted totals
+
+First model the order flow as a server-side state machine. On checkout, re-read variants and delivery rules, validate stock and visibility, calculate line totals, discounts, tax if configured, delivery fee and grand total on the server, then write an immutable order snapshot inside a transaction. Use an idempotency key so retries cannot create duplicate orders.
+
+For Algeria-focused builds, use COD by default unless the user selects another method: full name, phone, all 58 wilayas, Stop Desk or domicile, and a dependent baladiya selector only for domicile. Validate the wilaya/baladiya relationship on the server. Never request unneeded email, free-form address, payment data or user data.
+
+## 6. Private owner control room
+
+Build an unadvertised direct route with real authorization. The owner console must cover Overview, Orders, Delivery, Catalogue, Collections, Content, Hero/Media, Insights, Settings, Activity and Backup/Export. Use a custom brand-specific design, never an imitation of Shopify or a public-template dashboard.
+
+| Console area | Required operations |
 | --- | --- |
-| Brand name | Apply to product copy, metadata, navigation, owner console, and documentation. |
-| Color palette | Accept HEX values, names, an image palette, or a description; verify readable contrast. |
-| Preferred font | Use it if supplied; otherwise use `DM Serif Display` for display and `Manrope` for interface/body. |
-| Currency | Use the requested symbol/code in pricing, totals, reports, and exports. |
-| Hosting platform | Use the chosen provider, such as Render, Cloudflare, Vercel or Firebase Hosting. |
-| Data platform | Use the chosen store, such as Neon, Firebase, Supabase, Cloudflare D1 or PostgreSQL. |
+| Overview | actionable order/status/low-stock/data-quality cues; never fabricated KPIs. |
+| Orders | filters, detail, notes, status transition guard, customer and delivery snapshot, export-safe views. |
+| Delivery | regions, methods, availability, fees, conditional rules and bulk edits with audit event. |
+| Catalogue | product/variant/media/category lifecycle, visibility, stock state, search and pagination. |
+| Content | hero, pages, localized blocks, section visibility and revision-aware publishing. |
+| Media | upload validation, crop/alt/role metadata, approval, referenced-asset protection. |
+| Insights | first-party funnel/operational events, date filters, privacy-safe aggregates. |
+| Settings | brand, legal, policies, notification preferences, integrations and store state. |
+| Activity/Recovery | append-only changes, scoped export, import validation, backup and rollback procedure. |
 
-If one required value is missing, request only that value. Do not request logos, testimonials, personal credentials, or extra marketing inputs before scaffolding.
+## 7. APIs, security, analytics and testing
 
-## Delivery workflow
+Version APIs from the first route. Use nouns, typed request/response schemas, resource-scoped authorization, list pagination, allow-listed filtering/sorting, structured errors, rate limits and explicit external-call timeouts. State security rules in the API specification.
 
-1. Translate palette and typography into a compact token system before composing UI.
-2. Select a framework that fits the chosen hosting/data pair; define products, variants, stock, categories, collections, media, delivery rules, orders, activity and roles before screens.
-3. Build public home, discovery, category/collection browsing, product detail, bag, checkout, confirmation, account/order history where supported, contact, policy and responsive navigation.
-4. Build a protected owner console for overview, orders, delivery, catalogue, collections, content, hero/media, insights, settings, activity and recovery. Never expose an admin link in public UI.
-5. Implement the selected payment/delivery contract. For Algeria-focused KDB work, default to COD, all 58 wilayas, Stop Desk or domicile, and baladiya only for domicile.
-6. Calculate prices, stock, delivery and status transitions on the server. Treat browser values as untrusted.
-7. Test checkout, protected operations, invalid inputs, desktop/mobile layouts, and the selected deployment configuration. Document secrets without committing them.
+Capture privacy-minimal funnel events: view, search, filter, detail view, add-to-bag, begin checkout, validation failure, order created and authorized owner change. Record request IDs and failure categories, not raw secrets, payment data or unnecessary personal data. Define consent behavior before launching analytics.
 
-## Owner-console baseline
+Test pure totals/state transitions, input validation, data migration, resource ownership, idempotency, stock concurrency, delivery rules, owner actions, mobile checkout, keyboard navigation, upload denial, empty/error states and production build. Deliver exact setup, migration, test, preview, deployment and rollback commands.
 
-Include operational overview, order lifecycle/notes, delivery matrix, products/variants, collections/categories, content/hero management, media, analytics/low-stock signals, store controls, activity audit and export/backup safeguards unless the selected platform makes one inapplicable.
+## 8. Completion checklist
 
-Use an original brand-specific visual language. Do not copy an external administration product or a reference brand’s UI.
-
-## Safety and trust rules
-
-- Never fabricate customer reviews, ratings, testimonials, completed orders, inventory, financial results, or identities.
-- Keep owner access private and protected by the production identity system or securely configured secret.
-- Validate API inputs, escape rendered content, restrict URLs/uploads, enforce authorization server-side, and protect customer data from public reads.
-- Preserve sensitive operational changes in an activity record where the selected data platform supports it.
-
-## Platform decisions
-
-Read `references/platform-recipes.md` after the user selects the hosting/data pair. Use it as an integration guide, never as a reason to override the user’s selected services.
-
-## Completion standard
-
-Deliver an original responsive, tested system with deployment documentation in the user’s requested language. Report selected stack, public/owner capabilities, security controls, tests, and any required credentials.
+Before delivery, verify all six inputs are visibly applied; no public admin discovery exists; no secrets or TODO placeholders remain; every domain entity has ownership and lifecycle rules; every API mutation is validated and authorized; desktop and mobile flows are tested; first-party analytics is documented; and deployment/backup/rollback instructions match the selected platforms.

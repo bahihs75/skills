@@ -1,24 +1,38 @@
 ---
 name: product-media-library
-description: Curate a raw product-photo repository into commerce-ready media with selection, metadata, accessibility, optimization, structured storage, and safe publishing. Use when a project begins with unstructured product image files rather than a catalog system.
+description: Curate a raw product-image repository into a commerce-ready media system with inventory, selection, metadata, accessibility, rights tracking, responsive derivatives, structured storage, safe publishing, and quality control. Use when product media begins as unstructured image files.
 ---
 
-# Product Media Library Reference Skill
+# Product Media Library — Raw Images to Governed Commerce Assets
 
-Turn a raw image collection into a reliable product-media system. Preserve originals, create derivative assets deliberately, and treat naming, alt text, licensing and product association as first-class data.
+This skill turns an unstructured image folder into a reliable media library. It preserves originals, creates approved derivatives, binds assets to truthful product records and prevents unreviewed imagery from becoming production content. Read [`../STANDARDS.md`](../STANDARDS.md) first.
 
-## Curation workflow
+## 1. Inventory and curation workflow
 
-1. Inventory images with filename, dimensions, aspect ratio, file size, visual subject, legibility, duplication risk and quality notes.
-2. Group candidates by product and select a primary card image, gallery images, detail crops and social/share crops.
-3. Create normalized IDs independent of original filenames; keep the original filename as provenance metadata.
-4. Add factual product/packaging alt text. Do not infer ingredients, claims, prices, availability or brand permissions from an image alone.
-5. Generate responsive formats and sizes, store originals separately, and publish only approved derivatives through the selected storage/CDN provider.
+Inventory each file with original filename, checksum, dimensions, aspect ratio, byte size, format, potential product, visible packaging/label, image quality, duplicate group, rights/provenance state and review status. Do not infer ingredients, legal claims, product availability, price, brand ownership or customer consent from pixels alone.
 
-## Data contract
+Select explicit roles: `primary_card`, `gallery`, `detail_crop`, `ingredient_or_texture`, `social_share`, `hero`, `archive`. Keep selected and rejected reason metadata. Never overwrite originals; create derivatives from a documented source asset/version.
 
-Store `assetId`, `productId`, `role`, `url`, `width`, `height`, `alt`, `sourceFilename`, `createdAt`, `rightsStatus`, `approved`, and optional tags. Validate URLs and avoid hard-coding local filesystem paths in production UI.
+## 2. Data model and storage
 
-## Quality checks
+| Record | Key fields | Rule |
+| --- | --- | --- |
+| Asset | id, original key, checksum, original filename, width/height, MIME, provenance, rights state | Immutable source reference. |
+| Derivative | id, sourceAssetId, role, format, width/height, crop, object key, generatedAt | Rebuildable and approval-aware. |
+| ProductMediaLink | productId, asset/derivative ID, role, sortOrder, alt, locale, approved | Makes media assignment explicit. |
+| Review | id, assetId, reviewer, status, reason, timestamp | Required before production publishing. |
+| Collection | id, name, product/media relation, visibility | Supports campaign/season curation. |
 
-Review sharpness, exposure, cropped labels, unintended people, sensitive information, duplicate frames, mobile card crop, contrast against page surfaces and accessibility text. Keep uncertain images in review rather than publishing them.
+Use object storage/CDN for bytes and a database/document store for metadata. Use stable IDs and signed access for private originals. Generate responsive formats according to actual interface breakpoints; avoid publishing local paths or oversized source files to mobile cards.
+
+## 3. Accessibility and visual QA
+
+Write factual alt text that identifies product, packaging, color/material, viewpoint and meaningful visible detail. Do not repeat nearby heading or use “image of.” Mark decorative texture only when it adds no information. Review crop safety, label legibility, contrast on interface surface, hidden personal information, accidental faces, duplicate frames, compression, mobile focal point and loading fallback.
+
+## 4. Publishing and performance
+
+Use a review gate: ingest → metadata → derivatives → product link → visual/accessibility review → approved → published. Serve modern responsive formats with explicit width/height to avoid layout shifts, lazy load below-fold imagery, preload only the actual hero/primary image, and retain a fallback when a CDN object fails. Never create a public asset URL before rights/approval policy allows it.
+
+## 5. Analytics, tests and handover
+
+Track asset usage, broken-media error, primary-image click-through and conversion association only with privacy-safe aggregate analytics. Test duplicate checksum detection, missing alt, invalid MIME, destructive crop prevention, expired signed URL, failed derivative, product-link authorization, responsive `srcset` selection and restore from originals. Deliver asset manifest, naming convention, storage lifecycle, rights policy and review/export procedure.
